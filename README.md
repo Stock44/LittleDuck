@@ -23,7 +23,7 @@ with the [FParsec](https://www.quanttec.com/fparsec/) parser combinator library.
    ```
 2. Navigate to the project directory:
    ```sh
-   cd project-name
+   cd LittleDuck
    ```
 3. Restore dependencies:
    ```sh
