@@ -268,7 +268,7 @@ module ``Term parsing`` =
 
 
     [<Fact>]
-    let ``Can parse "2 * 3 * 4 / 7 / 8" correctly`` () =
+    let ``Can parse "2 * 3 * 4 / 7 / 8" correctly with left associativity`` () =
         let result = "2 *   3* 4 / 7/8" |> run (Term.parse .>> eof) |> ParserResult.unwrap
 
         test
