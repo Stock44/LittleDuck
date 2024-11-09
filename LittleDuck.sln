@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LittleDuck", "LittleDuck\LittleDuck.fsproj", "{07DB9A82-46EB-4AEB-ACA6-D36FD85D1FE4}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LittleDuck.Tests", "LittleDuck.Tests\LittleDuck.Tests.fsproj", "{36036F89-C6D9-46AC-87F5-889A1307A5B8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{07DB9A82-46EB-4AEB-ACA6-D36FD85D1FE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07DB9A82-46EB-4AEB-ACA6-D36FD85D1FE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07DB9A82-46EB-4AEB-ACA6-D36FD85D1FE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07DB9A82-46EB-4AEB-ACA6-D36FD85D1FE4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36036F89-C6D9-46AC-87F5-889A1307A5B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36036F89-C6D9-46AC-87F5-889A1307A5B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36036F89-C6D9-46AC-87F5-889A1307A5B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36036F89-C6D9-46AC-87F5-889A1307A5B8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
