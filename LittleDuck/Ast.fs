@@ -1,3 +1,4 @@
+[<AutoOpen>]
 module LittleDuck.Ast
 
 type IdentifierNode = IdentifierNode of string
@@ -56,13 +57,15 @@ and ConditionNode =
 
 and AssignmentNode = AssignmentNode of IdentifierNode * ExpressionNode
 
+and ReturnNode = ReturnNode of ExpressionNode option
+
 and StatementNode =
     | AssignmentStatement of AssignmentNode
     | ConditionStatement of ConditionNode
     | CycleStatement of CycleNode
     | InvocationStatement of InvocationNode
     | PrintStatement of PrintNode
-    | ReturnStatement of ExpressionNode option
+    | ReturnStatement of ReturnNode
 
 and BodyNode = BodyNode of StatementNode list
 

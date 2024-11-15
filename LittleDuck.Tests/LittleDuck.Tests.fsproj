@@ -10,7 +10,8 @@
     <ItemGroup>
         <Compile Include="Helpers.fs" />
         <Compile Include="Parser.fs" />
-        <Compile Include="SemanticAnalyzer.fs" />
+        <Compile Include="SemanticContext.fs" />
+        <Compile Include="TypeResolvers.fs" />
     </ItemGroup>
 
     <ItemGroup>

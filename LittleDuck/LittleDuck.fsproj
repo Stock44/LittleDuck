@@ -8,7 +8,11 @@
     <ItemGroup>
         <Compile Include="Ast.fs" />
         <Compile Include="Parser.fs" />
-        <Compile Include="SemanticAnalyzer.fs" />
+        <Compile Include="SemanticAnalysisTypes.fs" />
+        <Compile Include="SemanticContext.fs" />
+        <Compile Include="TypeResolvers.fs" />
+        <Compile Include="ErrorCollectors.fs" />
+        <Compile Include="SemanticAnalysis.fs" />
         <Compile Include="Program.fs"/>
     </ItemGroup>
 

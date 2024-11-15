@@ -1170,7 +1170,9 @@ module ``Program parsing`` =
                 FunctionDeclarationsNode([]),
                 BodyNode(
                     [ ReturnStatement(
-                          Some(ExpExpression(TermExp(FactorTerm(CTEFactor(IdentifierCTE(IdentifierNode("x")))))))
+                          ReturnNode(
+                              Some(ExpExpression(TermExp(FactorTerm(CTEFactor(IdentifierCTE(IdentifierNode("x")))))))
+                          )
                       ) ]
                 )
             ))
@@ -1189,7 +1191,7 @@ module ``Program parsing`` =
                           IdentifierNode("foo"),
                           [],
                           VariableDeclarationsNode([]),
-                          BodyNode([ ReturnStatement None ])
+                          BodyNode([ ReturnStatement(ReturnNode None) ])
                       ) ]
                 ),
                 BodyNode([])

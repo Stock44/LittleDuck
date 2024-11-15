@@ -1,3 +1,4 @@
+[<AutoOpen>]
 module LittleDuck.Parser
 
 open System
@@ -8,18 +9,20 @@ open FParsec
 type UserState = unit
 type Parser<'t> = Parser<'t, UserState>
 
-let operator representation pBase baseAstNode =
-    ((skipString representation >>. spaces >>. pBase)
-     |>> (fun rhs -> (fun lhs -> (lhs, rhs) |> baseAstNode)))
+[<AutoOpen>]
+module private Helpers =
+    let operator representation pBase baseAstNode =
+        ((skipString representation >>. spaces >>. pBase)
+         |>> (fun rhs -> (fun lhs -> (lhs, rhs) |> baseAstNode)))
 
-let leftAssociativeOp (pOp: Parser<_ -> _, _>) pBase =
-    let pTail, pTailRef = createParserForwardedToRef ()
+    let leftAssociativeOp (pOp: Parser<_ -> _, _>) pBase =
+        let pTail, pTailRef = createParserForwardedToRef ()
 
-    pTailRef.Value <-
-        spaces >>? tuple2 pOp (pTail <|> preturn id)
-        |>> (fun (inner, outer) -> inner >> outer)
+        pTailRef.Value <-
+            spaces >>? tuple2 pOp (pTail <|> preturn id)
+            |>> (fun (inner, outer) -> inner >> outer)
 
-    tuple2 pBase (pTail <|> preturn id) |>> fun (lhs, next) -> lhs |> next
+        tuple2 pBase (pTail <|> preturn id) |>> fun (lhs, next) -> lhs |> next
 
 module Identifier =
     let parse: Parser<_> =
@@ -176,6 +179,12 @@ module Assignment =
         tuple2 (Identifier.parse .>> spaces .>> skipChar '=' .>> spaces) Expression.parse
         |>> AssignmentNode
 
+module Return =
+    let parse =
+        skipString "return"
+        >>. ((spaces1 >>? Expression.parse |>> (Some >> ReturnNode))
+             <|> preturn (ReturnNode None))
+
 module Statement =
     let pAssignmentStatement = Assignment.parse |>> AssignmentStatement
 
@@ -187,10 +196,7 @@ module Statement =
 
     let pPrintStatement = Print.parse |>> PrintStatement
 
-    let pReturnStatement =
-        skipString "return"
-        >>. ((spaces1 >>? Expression.parse |>> (Some >> ReturnStatement))
-             <|> preturn (ReturnStatement None))
+    let pReturnStatement = Return.parse |>> ReturnStatement
 
     let parse =
         (pPrintStatement
