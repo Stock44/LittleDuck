@@ -12,6 +12,7 @@
         <Compile Include="Parser.fs" />
         <Compile Include="SemanticContext.fs" />
         <Compile Include="TypeResolvers.fs" />
+        <Compile Include="IntegrationTests.fs" />
     </ItemGroup>
 
     <ItemGroup>

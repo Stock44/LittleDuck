@@ -12,7 +12,7 @@ type Parser<'t> = Parser<'t, UserState>
 [<AutoOpen>]
 module private Helpers =
     let operator representation pBase baseAstNode =
-        ((skipString representation >>. spaces >>. pBase)
+        ((skipString representation >>? spaces >>? pBase)
          |>> (fun rhs -> (fun lhs -> (lhs, rhs) |> baseAstNode)))
 
     let leftAssociativeOp (pOp: Parser<_ -> _, _>) pBase =
@@ -29,6 +29,17 @@ module Identifier =
         regex "[^\d\\+\-/*><=\s\".!:,()[\];{}][^\\+\-/*><=\s\".!:,()[\];{}]*"
         |>> IdentifierNode
         <?> "identifier"
+
+let pComment = skipString "//" >>. manyCharsTill anyChar newline |>> ignore
+
+let pMultilineComment =
+    skipString "/*" >>. manyCharsTill anyChar (skipString "*/") |>> ignore
+
+let pWhitespace =
+    (spaces >>? (pComment <|> pMultilineComment) >>. spaces) <|> spaces
+
+let pWhitespace1 =
+    (spaces1 >>? (pComment <|> pMultilineComment) >>. spaces) <|> spaces
 
 module Value =
     let pNumber =
@@ -47,23 +58,40 @@ module Value =
 
     let parse = pNumber <|> pString <|> pBoolean
 
-module CTE =
-    let pNegativeCTE = (skipString "-" >>. spaces >>. Value.parse) |>> NegativeCTE
+let pExpression, pExpressionRef = createParserForwardedToRef<ExpressionNode, _> ()
 
-    let pPositiveCTE = (skipString "+" >>. spaces >>. Value.parse) |>> PositiveCTE
+module Invocation =
+    let parse =
+        tuple2
+            (Identifier.parse .>>? pWhitespace .>>? skipChar '(' .>> pWhitespace)
+            (sepBy pExpression (pWhitespace >>? skipChar ',' >>. pWhitespace))
+        .>> pWhitespace
+        .>> skipChar ')'
+        |>> InvocationNode
+
+module CTE =
+    let pNegativeCTE = (skipString "-" >>. pWhitespace >>. Value.parse) |>> NegativeCTE
+
+    let pPositiveCTE = (skipString "+" >>. pWhitespace >>. Value.parse) |>> PositiveCTE
 
     let pValueCTE = Value.parse |>> ValueCTE
 
+    let pInvocationCTE = Invocation.parse |>> InvocationCTE
+
     let pIdentifierCTE = Identifier.parse |>> IdentifierCTE
 
-    let parse = pNegativeCTE <|> pPositiveCTE <|> pValueCTE <|> pIdentifierCTE
+    let parse =
+        pNegativeCTE
+        <|> pPositiveCTE
+        <|> pValueCTE
+        <|> pInvocationCTE
+        <|> pIdentifierCTE
 
 
-let pExpression, pExpressionRef = createParserForwardedToRef<ExpressionNode, _> ()
 
 module Factor =
     let pParenthesizedExpressionFactor =
-        between (skipString "(" >>. spaces) (spaces .>> skipString ")") pExpression
+        between (skipString "(" >>. pWhitespace) (pWhitespace .>> skipString ")") pExpression
         |>> ParenthesizedExprFactor
 
     let pCTEFactor = CTE.parse |>> CTEFactor
@@ -88,16 +116,20 @@ module Exp =
 
 module Expression =
     let pLessThanExpression =
-        tuple2 (Exp.parse .>>? spaces .>>? skipString "<" .>> spaces) Exp.parse
+        tuple2 (Exp.parse .>>? pWhitespace .>>? skipString "<" .>> pWhitespace) Exp.parse
         |>> LessThanExpression
 
     let pMoreThanExpression =
-        tuple2 (Exp.parse .>>? spaces .>>? skipString ">" .>> spaces) Exp.parse
+        tuple2 (Exp.parse .>>? pWhitespace .>>? skipString ">" .>> pWhitespace) Exp.parse
         |>> MoreThanExpression
 
     let pNotEqualExpression =
-        tuple2 (Exp.parse .>>? spaces .>>? skipString "!=" .>> spaces) Exp.parse
+        tuple2 (Exp.parse .>>? pWhitespace .>>? skipString "!=" .>> pWhitespace) Exp.parse
         |>> NotEqualExpression
+
+    let pEqualExpression =
+        tuple2 (Exp.parse .>>? pWhitespace .>>? skipString "==" .>> pWhitespace) Exp.parse
+        |>> EqualExpression
 
     let pExpExpression = Exp.parse |>> ExpExpression
 
@@ -105,6 +137,7 @@ module Expression =
         pLessThanExpression
         <|> pMoreThanExpression
         <|> pNotEqualExpression
+        <|> pEqualExpression
         <|> pExpExpression
 
     let parse = pExpression
@@ -112,91 +145,100 @@ module Expression =
 module Print =
     let parse =
         skipString "print"
-        >>. spaces
+        >>. pWhitespace
         >>. skipChar '('
-        >>. spaces
-        >>. sepBy Expression.parse (spaces >>? skipChar ',' >>. spaces)
-        .>> spaces
+        >>. pWhitespace
+        >>. sepBy Expression.parse (pWhitespace >>? skipChar ',' >>. pWhitespace)
+        .>> pWhitespace
         .>> skipChar ')'
         |>> PrintNode
 
-module Invocation =
-    let parse =
-        tuple2
-            (Identifier.parse .>>? spaces .>>? skipChar '(' .>> spaces)
-            (sepBy Expression.parse (spaces >>? skipChar ',' >>. spaces))
-        .>> spaces
-        .>> skipChar ')'
-        |>> InvocationNode
 
 let pBody, pBodyRef = createParserForwardedToRef<BodyNode, _> ()
 
 module Cycle =
     let parse =
         tuple2
-            (skipString "while" >>. spaces >>. pBody
-             .>> spaces
+            (skipString "while" >>. pWhitespace >>. pBody
+             .>> pWhitespace
              .>> skipString "do"
-             .>> spaces
+             .>> pWhitespace
              .>> skipChar '('
-             .>> spaces)
-            (Expression.parse .>> spaces .>> skipChar ')')
+             .>> pWhitespace)
+            (Expression.parse .>> pWhitespace .>> skipChar ')')
         |>> CycleNode
 
 module If =
     let parse =
         tuple2
-            (skipString "if" >>. spaces >>. skipChar '(' >>. spaces >>. Expression.parse
-             .>> spaces
+            (skipString "if"
+             >>. pWhitespace
+             >>. skipChar '('
+             >>. pWhitespace
+             >>. Expression.parse
+             .>> pWhitespace
              .>> skipChar ')'
-             .>> spaces)
+             .>> pWhitespace)
             pBody
         |>> IfNode
 
 module Else =
     let parse =
         tuple2
-            (skipString "else" >>. spaces >>. skipChar '(' >>. spaces >>. Expression.parse
-             .>> spaces
+            (skipString "else"
+             >>. pWhitespace
+             >>. skipChar '('
+             >>. pWhitespace
+             >>. Expression.parse
+             .>> pWhitespace
              .>> skipChar ')'
-             .>> spaces)
+             .>> pWhitespace)
             pBody
         |>> ElseNode
 
 module Condition =
-    let pIfElseCondition = tuple2 (If.parse .>>? spaces) Else.parse |>> IfElseCondition
+    let pIfElseCondition =
+        tuple2 (If.parse .>>? pWhitespace) Else.parse |>> IfElseCondition
 
     let pIfCondition = If.parse |>> IfCondition
 
     let parse =
-        pipe2 If.parse (opt (spaces >>? Else.parse)) (fun ifNode elseNode ->
+        pipe2 If.parse (opt (pWhitespace >>? Else.parse)) (fun ifNode elseNode ->
             match elseNode with
             | None -> ifNode |> IfCondition
             | Some elseNode -> IfElseCondition(ifNode, elseNode))
 
 module Assignment =
     let parse =
-        tuple2 (Identifier.parse .>> spaces .>> skipChar '=' .>> spaces) Expression.parse
+        tuple2 (Identifier.parse .>> pWhitespace .>> skipChar '=' .>> pWhitespace) Expression.parse
         |>> AssignmentNode
 
 module Return =
     let parse =
         skipString "return"
-        >>. ((spaces1 >>? Expression.parse |>> (Some >> ReturnNode))
+        >>. ((pWhitespace1 >>? Expression.parse |>> (Some >> ReturnNode))
              <|> preturn (ReturnNode None))
 
 module Statement =
-    let pAssignmentStatement = Assignment.parse |>> AssignmentStatement
+    let pAssignmentStatement =
+        Assignment.parse .>> pWhitespace .>> skipChar ';'
+        |>> (AssignmentStatement >> Some)
 
-    let pConditionStatement = Condition.parse |>> ConditionStatement
+    let pConditionStatement = Condition.parse |>> (ConditionStatement >> Some)
 
-    let pCicleStatement = Cycle.parse |>> CycleStatement
+    let pCicleStatement = Cycle.parse |>> (CycleStatement >> Some)
 
-    let pInvocationStatement = Invocation.parse |>> InvocationStatement
+    let pInvocationStatement =
+        Invocation.parse .>> pWhitespace .>> skipChar ';'
+        |>> (InvocationStatement >> Some)
 
-    let pPrintStatement = Print.parse |>> PrintStatement
+    let pPrintStatement =
+        Print.parse .>> pWhitespace .>> skipChar ';' |>> (PrintStatement >> Some)
 
-    let pReturnStatement = Return.parse |>> ReturnStatement
+    let pReturnStatement =
+        Return.parse .>> pWhitespace .>> skipChar ';' |>> (ReturnStatement >> Some)
+
+    let pEmptyStatement = pWhitespace >>. skipChar ';' >>% None
 
     let parse =
         (pPrintStatement
@@ -204,16 +246,15 @@ module Statement =
          <|> pCicleStatement
          <|> pConditionStatement
          <|> pInvocationStatement
-         <|> pAssignmentStatement)
+         <|> pAssignmentStatement
+         <|> pEmptyStatement)
         <?> "statement"
 
 module Body =
     pBodyRef.Value <-
-        skipChar '{'
-        >>. spaces
-        >>. many (Statement.parse .>> spaces .>> skipChar ';' .>> spaces)
+        skipChar '{' >>. pWhitespace >>. many (Statement.parse .>> pWhitespace)
         .>> skipChar '}'
-        |>> BodyNode
+        |>> (List.choose id >> BodyNode)
 
     let parse = pBody
 
@@ -231,23 +272,25 @@ module Type =
 module VariableDeclaration =
     let parse =
         tuple2
-            (sepBy (Identifier.parse .>> spaces) (skipChar ',' >>. spaces) .>>? skipChar ':'
-             .>> spaces)
+            (sepBy (Identifier.parse .>> pWhitespace) (skipChar ',' >>. pWhitespace)
+             .>>? skipChar ':'
+             .>> pWhitespace)
             Type.parse
         |>> VariableDeclarationNode
 
 module VariableDeclarations =
     let parse =
-        many (VariableDeclaration.parse .>> spaces .>> skipChar ';' .>> spaces)
+        many (VariableDeclaration.parse .>> pWhitespace .>> skipChar ';' .>> pWhitespace)
         |>> VariableDeclarationsNode
 
 module Argument =
     let parse =
-        tuple2 (Identifier.parse .>> spaces .>> skipChar ':' .>> spaces) Type.parse
+        tuple2 (Identifier.parse .>> pWhitespace .>> skipChar ':' .>> pWhitespace) Type.parse
         |>> ArgumentNode
 
 module FunctionDeclaration =
-    let pArgumentList = (sepBy Argument.parse (spaces .>> skipChar ',' .>> spaces))
+    let pArgumentList =
+        (sepBy Argument.parse (pWhitespace .>> skipChar ',' .>> pWhitespace))
 
     let pVoid = skipString "void" >>% Void
 
@@ -255,26 +298,37 @@ module FunctionDeclaration =
 
     let parse =
         tuple5
-            (pReturnType .>>? spaces1)
-            (Identifier.parse .>> spaces .>> skipChar '(' .>> spaces)
-            (pArgumentList .>> spaces .>> skipChar ')' .>> spaces .>> skipChar '[' .>> spaces)
-            (VariableDeclarations.parse .>> spaces)
-            (Body.parse .>> spaces .>> skipChar ']')
+            (pReturnType .>>? pWhitespace1)
+            (Identifier.parse .>> pWhitespace .>> skipChar '(' .>> pWhitespace)
+            (pArgumentList
+             .>> pWhitespace
+             .>> skipChar ')'
+             .>> pWhitespace
+             .>> skipChar '['
+             .>> pWhitespace)
+            (VariableDeclarations.parse .>> pWhitespace)
+            (Body.parse .>> pWhitespace .>> skipChar ']')
         |>> FunctionDeclarationNode
 
 module FunctionDeclarations =
     let parse =
-        many (FunctionDeclaration.parse .>> spaces .>> skipChar ';' .>> spaces)
+        many (FunctionDeclaration.parse .>> pWhitespace .>> skipChar ';' .>> pWhitespace)
         |>> FunctionDeclarationsNode
 
 module Program =
     let parse =
         tuple4
-            (skipString "program" >>. spaces1 >>. Identifier.parse
-             .>> spaces
+            (skipString "program" >>. pWhitespace1 >>. Identifier.parse
+             .>> pWhitespace
              .>> skipChar ';'
-             .>> spaces)
-            (VariableDeclarations.parse .>> spaces)
-            (FunctionDeclarations.parse .>> spaces .>> skipString "main" .>> spaces)
-            (Body.parse .>> spaces .>> skipString "end" .>> spaces)
+             .>> pWhitespace)
+            (VariableDeclarations.parse .>> pWhitespace)
+            (FunctionDeclarations.parse .>> pWhitespace .>> skipString "main" .>> pWhitespace)
+            (Body.parse .>> pWhitespace .>> skipString "end" .>> pWhitespace)
         |>> ProgramNode
+
+module LittleDuck =
+    let parse program =
+        match run (Program.parse .>> eof) program with
+        | Success(ast, _, _) -> ast |> Result.Ok
+        | Failure(error, _, _) -> error |> Result.Error

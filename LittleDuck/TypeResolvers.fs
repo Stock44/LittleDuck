@@ -25,7 +25,7 @@ module Resolve =
     /// <returns>
     /// A ReaderT monad over the SemanticContext, encapsulating the resolved type, or an error if the node is invalid.
     /// </returns>
-    let cteType (cte: CTENode) : ReaderT<SemanticContext, _> =
+    let rec cteType (cte: CTENode) : ReaderT<SemanticContext, _> =
         monad' {
             let! ctx = Reader.ask |> ReaderT.hoist
 
@@ -34,12 +34,29 @@ module Resolve =
             | PositiveCTE valueNode -> return valueType valueNode
             | ValueCTE valueNode -> return valueType valueNode
             | IdentifierCTE(IdentifierNode name) ->
-                // First attempt to resolve and argument with this name
-                match! name |> SemanticContext.getSymbol ctx |> ReaderT.lift with
-                | Program -> return! ProgramUsedAsValue |> Error |> ReaderT.lift
-                | Function _ -> return! FunctionUsedAsValue name |> Error |> ReaderT.lift
+                match!
+                    name
+                    |> SemanticContext.getSymbol ctx
+                    |> first NonEmptyList.singleton
+                    |> ReaderT.lift
+                with
+                | Program -> return! ProgramUsedAsValue |> NonEmptyList.singleton |> Error |> ReaderT.lift
+                | Function _ -> return! FunctionUsedAsValue name |> NonEmptyList.singleton |> Error |> ReaderT.lift
                 | Argument ty -> return ty
                 | Variable ty -> return ty
+            | InvocationCTE(InvocationNode(IdentifierNode name, _)) ->
+                match!
+                    name
+                    |> SemanticContext.getSymbol ctx
+                    |> first NonEmptyList.singleton
+                    |> ReaderT.lift
+                with
+                | Program -> return! InvokedProgram |> NonEmptyList.singleton |> Error |> ReaderT.lift
+                | Argument _ -> return! InvokedArgument name |> NonEmptyList.singleton |> Error |> ReaderT.lift
+                | Variable _ -> return! InvokedVariable name |> NonEmptyList.singleton |> Error |> ReaderT.lift
+                | Function(FunctionDeclarationNode(Void, _, _, _, _)) ->
+                    return! VoidFunctionUsedAsValue name |> NonEmptyList.singleton |> Error |> ReaderT.lift
+                | Function(FunctionDeclarationNode(ReturnType ty, _, _, _, _)) -> return ty
         }
 
     /// <summary>
@@ -52,7 +69,7 @@ module Resolve =
     /// <returns>
     /// The type of the factor node, wrapped in a ReaderT Result that can resolve to an error if the type resolution failed.
     /// </returns>
-    let rec factorType (factor: FactorNode) =
+    and factorType (factor: FactorNode) =
         match factor with
         | CTEFactor cte -> cteType cte
         | ParenthesizedExprFactor expressionNode -> expressionType expressionNode
@@ -80,7 +97,12 @@ module Resolve =
                 | IntType, FloatType -> return FloatType
                 | FloatType, IntType -> return FloatType
                 | FloatType, FloatType -> return FloatType
-                | _ -> return! InvalidBinaryOperandTypes("/", lhsType, rhsType) |> Error |> ReaderT.lift
+                | _ ->
+                    return!
+                        InvalidBinaryOperandTypes("/", lhsType, rhsType)
+                        |> NonEmptyList.singleton
+                        |> Error
+                        |> ReaderT.lift
             }
         | MultiplicationTerm(termNode, factorNode) ->
             monad' {
@@ -92,7 +114,12 @@ module Resolve =
                 | IntType, FloatType -> return FloatType
                 | FloatType, IntType -> return FloatType
                 | FloatType, FloatType -> return FloatType
-                | _ -> return! InvalidBinaryOperandTypes("*", lhsType, rhsType) |> Error |> ReaderT.lift
+                | _ ->
+                    return!
+                        InvalidBinaryOperandTypes("*", lhsType, rhsType)
+                        |> NonEmptyList.singleton
+                        |> Error
+                        |> ReaderT.lift
             }
 
     /// <summary>
@@ -123,7 +150,12 @@ module Resolve =
                 | IntType, FloatType -> return FloatType
                 | FloatType, IntType -> return FloatType
                 | FloatType, FloatType -> return FloatType
-                | _ -> return! InvalidBinaryOperandTypes("+", lhsType, rhsType) |> Error |> ReaderT.lift
+                | _ ->
+                    return!
+                        InvalidBinaryOperandTypes("+", lhsType, rhsType)
+                        |> NonEmptyList.singleton
+                        |> Error
+                        |> ReaderT.lift
             }
         | SubtractionExp(expNode, termNode) ->
             monad' {
@@ -135,7 +167,12 @@ module Resolve =
                 | IntType, FloatType -> return FloatType
                 | FloatType, IntType -> return FloatType
                 | FloatType, FloatType -> return FloatType
-                | _ -> return! InvalidBinaryOperandTypes("-", lhsType, rhsType) |> Error |> ReaderT.lift
+                | _ ->
+                    return!
+                        InvalidBinaryOperandTypes("-", lhsType, rhsType)
+                        |> NonEmptyList.singleton
+                        |> Error
+                        |> ReaderT.lift
             }
 
     /// Resolves the type of a given expression in the context of the current semantic analysis.
@@ -160,7 +197,12 @@ module Resolve =
                 | IntType, FloatType -> return BooleanType
                 | FloatType, IntType -> return BooleanType
                 | FloatType, FloatType -> return BooleanType
-                | _ -> return! InvalidBinaryOperandTypes("<", lhsType, rhsType) |> Error |> ReaderT.lift
+                | _ ->
+                    return!
+                        InvalidBinaryOperandTypes("<", lhsType, rhsType)
+                        |> NonEmptyList.singleton
+                        |> Error
+                        |> ReaderT.lift
             }
         | MoreThanExpression(lhs, rhs) ->
             monad' {
@@ -172,7 +214,12 @@ module Resolve =
                 | IntType, FloatType -> return BooleanType
                 | FloatType, IntType -> return BooleanType
                 | FloatType, FloatType -> return BooleanType
-                | _ -> return! InvalidBinaryOperandTypes(">", lhsType, rhsType) |> Error |> ReaderT.lift
+                | _ ->
+                    return!
+                        InvalidBinaryOperandTypes(">", lhsType, rhsType)
+                        |> NonEmptyList.singleton
+                        |> Error
+                        |> ReaderT.lift
             }
         | NotEqualExpression(lhs, rhs) ->
             monad' {
@@ -184,7 +231,28 @@ module Resolve =
                 | IntType, FloatType -> return BooleanType
                 | FloatType, IntType -> return BooleanType
                 | FloatType, FloatType -> return BooleanType
-                | _ -> return! InvalidBinaryOperandTypes("!=", lhsType, rhsType) |> Error |> ReaderT.lift
+                | _ ->
+                    return!
+                        InvalidBinaryOperandTypes("!=", lhsType, rhsType)
+                        |> NonEmptyList.singleton
+                        |> Error
+                        |> ReaderT.lift
+            }
+        | EqualExpression(lhs, rhs) ->
+            monad' {
+                let! lhsType = expType lhs
+                and! rhsType = expType rhs
+
+                match lhsType, rhsType with
+                | IntType, IntType -> return BooleanType
+                | IntType, FloatType -> return BooleanType
+                | FloatType, IntType -> return BooleanType
+                | FloatType, FloatType -> return BooleanType
+                | _ ->
+                    return!
+                        InvalidBinaryOperandTypes("==", lhsType, rhsType)
+                        |> NonEmptyList.singleton
+                        |> Error
+                        |> ReaderT.lift
             }
         | ExpExpression expNode -> expType expNode
-

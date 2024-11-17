@@ -9,15 +9,19 @@ type ValueNode =
     | String of string
     | Boolean of bool
 
-type CTENode =
+// Recursive on ExpressionNode
+
+type InvocationNode = InvocationNode of IdentifierNode * ExpressionNode list
+
+and CTENode =
     | NegativeCTE of ValueNode
     | PositiveCTE of ValueNode
     | ValueCTE of ValueNode
     | IdentifierCTE of IdentifierNode
+    | InvocationCTE of InvocationNode
 
-// Recursive on ExpressionNode
 
-type FactorNode =
+and FactorNode =
     | ParenthesizedExprFactor of ExpressionNode
     | CTEFactor of CTENode
 
@@ -35,16 +39,14 @@ and ExpressionNode =
     | LessThanExpression of ExpNode * ExpNode
     | MoreThanExpression of ExpNode * ExpNode
     | NotEqualExpression of ExpNode * ExpNode
+    | EqualExpression of ExpNode * ExpNode
     | ExpExpression of ExpNode
 
 // End of recursion
 
 type PrintNode = PrintNode of ExpressionNode list
 
-type InvocationNode = InvocationNode of IdentifierNode * ExpressionNode list
-
 // Recursive on BodyNode
-
 type CycleNode = CycleNode of BodyNode * ExpressionNode
 
 and IfNode = IfNode of ExpressionNode * BodyNode

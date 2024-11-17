@@ -11,6 +11,7 @@ type SemanticError =
     | NameConflictsWithProgram of symbolName: string
     | ProgramUsedAsValue
     | FunctionUsedAsValue of functionName: string
+    | VoidFunctionUsedAsValue of functionName: string
     | InvalidBinaryOperandTypes of operator: string * lhsType: TypeNode * rhsType: TypeNode
     | AssignmentWithWrongType of variableName: string * variableType: TypeNode * receivedType: TypeNode
     | AssignmentToFunction of functionName: string

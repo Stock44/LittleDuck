@@ -677,9 +677,10 @@ module ``Assignment parsing`` =
 module ``Statement parsing`` =
     [<Fact>]
     let ``Can parse a print statement`` () =
-        let program = """print("Hello world!")"""
+        let program = """print("Hello world!");"""
 
-        let result = program |> run (Statement.parse .>> eof) |> ParserResult.unwrap
+        let result =
+            program |> run (Statement.parse .>> eof) |> ParserResult.unwrap |> Option.get
 
         test
             <@
@@ -696,7 +697,8 @@ module ``Statement parsing`` =
 }
 do (4 > 2)"""
 
-        let result = program |> run (Statement.parse .>> eof) |> ParserResult.unwrap
+        let result =
+            program |> run (Statement.parse .>> eof) |> ParserResult.unwrap |> Option.get
 
         test
             <@
@@ -719,9 +721,10 @@ do (4 > 2)"""
 
     [<Fact>]
     let ``Can parse an invocation statement`` () =
-        let program = """invoke()"""
+        let program = """invoke();"""
 
-        let result = program |> run (Statement.parse .>> eof) |> ParserResult.unwrap
+        let result =
+            program |> run (Statement.parse .>> eof) |> ParserResult.unwrap |> Option.get
 
         test <@ result = InvocationStatement(InvocationNode(IdentifierNode("invoke"), [])) @>
 
@@ -729,7 +732,8 @@ do (4 > 2)"""
     let ``Can parse a condition statement`` () =
         let program = """if (2) {} else (4) {}"""
 
-        let result = program |> run (Statement.parse .>> eof) |> ParserResult.unwrap
+        let result =
+            program |> run (Statement.parse .>> eof) |> ParserResult.unwrap |> Option.get
 
         test
             <@
@@ -743,9 +747,10 @@ do (4 > 2)"""
 
     [<Fact>]
     let ``Can parse an assignment statement`` () =
-        let program = "loremIpsum = 2"
+        let program = "loremIpsum = 2;"
 
-        let result = program |> run (Statement.parse .>> eof) |> ParserResult.unwrap
+        let result =
+            program |> run (Statement.parse .>> eof) |> ParserResult.unwrap |> Option.get
 
         test
             <@
