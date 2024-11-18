@@ -10,6 +10,7 @@
         <Compile Include="Parser.fs" />
         <Compile Include="SemanticAnalysisTypes.fs" />
         <Compile Include="SemanticContext.fs" />
+        <Compile Include="SemanticCube.fs" />
         <Compile Include="TypeResolvers.fs" />
         <Compile Include="ErrorCollectors.fs" />
         <Compile Include="SemanticAnalysis.fs" />

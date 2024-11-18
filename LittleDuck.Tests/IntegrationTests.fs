@@ -47,6 +47,11 @@ module Helpers =
         | InvokedArgument _ -> true
         | _ -> false
 
+    let isUnresolvedType =
+        function
+        | UnresolvedType -> true
+        | _ -> false
+
 let correctProgram =
     """program test;
 
@@ -141,7 +146,7 @@ int sumInts(a: int, b: int) [
 ];
 
 main {
-    if (sumInts(2.4 /* error: cannot use float as an input to an int argument */, 2) /* cannot use int function as boolean condition */) {
+    if (sumInts(2.4, 2) /* cannot use int function as boolean condition */) {
         return;
     }
 
@@ -152,17 +157,16 @@ end
 """
 
 [<Fact>]
-let ``sample program with two semantic errors should be parsed correctly, and analysis should end in two error.`` () =
+let ``sample program with one semantic errors should be parsed correctly, and analysis should end in one error.`` () =
     let analysis =
         programWithTwoErrors
         |> LittleDuck.parse
         |> Result.get
         |> SemanticAnalysis.processProgram
 
-    test <@ analysis.Errors.Length = 2 @>
+    test <@ analysis.Errors.Length = 1 @>
 
     test <@ isInvalidConditionType analysis.Errors[0] @>
-    test <@ isInvocationArgumentTypeMismatch analysis.Errors[1] @>
 
 let programWithThreeErrors =
     """program test;
@@ -193,7 +197,7 @@ end
 """
 
 [<Fact>]
-let ``sample program with three errors should result in analysis with three errors`` () =
+let ``sample program with four errors should result in analysis with four errors`` () =
     let analysis =
         programWithThreeErrors
         |> LittleDuck.parse
@@ -202,17 +206,20 @@ let ``sample program with three errors should result in analysis with three erro
 
     let errors = analysis.Errors
 
-    test <@ errors.Length = 3 @>
+    test <@ errors.Length = 4 @>
 
     let error0 = analysis.Errors[0]
     let error1 = analysis.Errors[1]
     let error2 = analysis.Errors[2]
+    let error3 = analysis.Errors[3]
 
-    test <@ isReturnTypeMismatch error2 @>
+    test <@ isReturnTypeMismatch error3 @>
 
-    test <@ isInvalidConditionType error1 @>
+    test <@ isInvalidConditionType error2 @>
 
-    test <@ isInvalidBinaryOperandTypes error0 @>
+    test <@ isInvalidBinaryOperandTypes error1 @>
+
+    test <@ isUnresolvedType error0 @>
 
 let programWithComplexErrors =
     """program test;
@@ -232,8 +239,8 @@ int divide(a: int, b: int) [
 
 main {
     numberVar = divide(10, 0);
-    str = numberVar; // Cannot assign number to string variable
-    print(str + numberVar); // Cannot sum string and number
+    str = numberVar; // can convert num to string
+    print(str + numberVar); // Cannot sum string and number and unresolved type
 }
 
 end
@@ -256,8 +263,8 @@ let ``sample program with complex errors should result in analysis with four err
     let error2 = analysis.Errors[2]
 
     test <@ isReturnTypeMismatch error2 @>
-    test <@ isAssignmentWithWrongType error1 @>
-    test <@ isInvalidBinaryOperandTypes error0 @>
+    test <@ isInvalidBinaryOperandTypes error1 @>
+    test <@ isUnresolvedType error0 @>
 
 
 let programWithManyErrors =
@@ -270,13 +277,13 @@ str2: string;
 
 void foo(a: int) [
     {
-        str1 = a;                   // Error 1: Type mismatch
+        str1 = a; // Correct, can convert an int into a string
     }
 ];
 
 int bar(a: int, b: string) [
     {
-        return a + b;               // Error 2: Operand type mismatch
+        return a + b;         // Error 1 and 2: Operand type mismatch and unresolved type
     }
 ];
 
@@ -288,9 +295,8 @@ void baz() [
 
 main {
     foo("not an int");              // Error 4: Argument type mismatch
-    var2 = bar(1, 2);               // Error 5: Argument type mismatch
-    print(str1 / str2);             // Error 6: Invalid binary operation
-    var1 = str2 + var1;             // Error 7: Binary operation type mismatch
+    print(str1 / str2);             // Error 5 and 6: Invalid binary operation and unresolved type
+    var1 = str2 + var1;             // Error 7 and 8: Binary operation type mismatch and unresolved type
 }
 
 end
@@ -306,7 +312,7 @@ let ``sample program with many errors should result in analysis with seven error
 
     let errors = analysis.Errors
 
-    test <@ errors.Length = 7 @>
+    test <@ errors.Length = 8 @>
 
     let error0 = errors[0]
     let error1 = errors[1]
@@ -315,14 +321,16 @@ let ``sample program with many errors should result in analysis with seven error
     let error4 = errors[4]
     let error5 = errors[5]
     let error6 = errors[6]
+    let error7 = errors[7]
 
-    test <@ isAssignmentWithWrongType error6 @>
-    test <@ isInvalidBinaryOperandTypes error5 @>
-    test <@ isAssignmentWithWrongType error4 @>
-    test <@ isInvocationArgumentTypeMismatch error3 @>
-    test <@ isInvocationArgumentTypeMismatch error2 @>
+    test <@ isInvalidBinaryOperandTypes error7 @>
+    test <@ isUnresolvedType error6 @>
+    test <@ isAssignmentWithWrongType error5 @>
+    test <@ isInvocationArgumentTypeMismatch error4 @>
+    test <@ isInvalidBinaryOperandTypes error3 @>
+    test <@ isUnresolvedType error2 @>
     test <@ isInvalidBinaryOperandTypes error1 @>
-    test <@ isInvalidBinaryOperandTypes error0 @>
+    test <@ isUnresolvedType error0 @>
 
 
 let programWithVariableArgument =

@@ -30,6 +30,7 @@ type SemanticError =
     | ReturnedValueFromVoidFunction of functionName: string
     | ReturnedNothingFromValueReturningFunction of functionName: string * expectedType: TypeNode
     | ReturnTypeMismatch of functionName: string * returnedType: TypeNode * expectedType: TypeNode
+    | UnresolvedType
 
 type Symbol =
     | Program

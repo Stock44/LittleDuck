@@ -63,6 +63,6 @@ let cteNodesWithContextAndExpectedType: obj[] list =
 [<MemberData(nameof cteNodesWithContextAndExpectedType)>]
 let ``should always resolve a cteType correctly, if a referenced variable is defined`` node ctx expectedType =
     let result = ReaderT.run (Resolve.cteType node) ctx
-    test <@ result |> Result.get = expectedType @>
+    test <@ result |> Option.get = expectedType @>
 
 

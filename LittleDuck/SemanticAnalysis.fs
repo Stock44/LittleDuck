@@ -55,7 +55,7 @@ module SemanticAnalysis =
         functionDeclaration |> foldResult (flip SemanticContext.defineFunction) state
 
     let processBody body state =
-        Reader.run (Collect.bodyErrors body) state.Context
+        ReaderT.run (Collect.bodyErrors body) state.Context
         |> fold (flip reportError) state
 
     let scopeTo (FunctionDeclarationNode(returnType, IdentifierNode name, arguments, variableDeclarations, _)) state =

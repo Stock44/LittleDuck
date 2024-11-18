@@ -48,8 +48,9 @@ module SemanticContext =
         let addArgument argName argType ctx =
             ctx |> over _symbolTable (Map.add argName (Argument argType))
 
-        let tryGetSymbol state symbolName =
-            state |> view _symbolTable |> Map.tryFind symbolName
+
+    let tryGetSymbol state symbolName =
+        state |> view _symbolTable |> Map.tryFind symbolName
 
     /// <summary>
     /// Defines a new variable within the given context,
@@ -115,6 +116,8 @@ module SemanticContext =
         | Some(Variable _) // Allow shadowing of previous variables, arguments, and functions
         | Some(Function _)
         | None -> ctx |> addArgument name argType |> Ok
+
+
 
     /// <summary>
     /// Tries to resolve a symbol by its name within the given `SemanticContext`, handling errors if resolution fails.
