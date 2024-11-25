@@ -105,7 +105,7 @@ module Collect =
                 let! lhsType = lhs |> Resolve.expType |> switchOption
                 let! rhsType = rhs |> Resolve.expType |> switchOption
                 yield! validateLessThan <!> lhsType <*> rhsType |> resolveOpValidation
-            | MoreThanExpression(lhs, rhs) ->
+            | GreaterThanExpression(lhs, rhs) ->
                 yield! expErrors lhs
                 yield! expErrors rhs
 
@@ -119,7 +119,7 @@ module Collect =
                 let! lhsType = lhs |> Resolve.expType |> switchOption
                 let! rhsType = rhs |> Resolve.expType |> switchOption
                 yield! validateNotEqual <!> lhsType <*> rhsType |> resolveOpValidation
-            | EqualExpression(lhs, rhs) ->
+            | EqualsExpression(lhs, rhs) ->
                 yield! expErrors lhs
                 yield! expErrors rhs
 

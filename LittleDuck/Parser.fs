@@ -25,7 +25,7 @@ module private Helpers =
         tuple2 pBase (pTail <|> preturn id) |>> fun (lhs, next) -> lhs |> next
 
 module Identifier =
-    let parse: Parser<_> =
+    let parse =
         regex "[^\d\\+\-/*><=\s\".!:,()[\];{}][^\\+\-/*><=\s\".!:,()[\];{}]*"
         |>> IdentifierNode
         <?> "identifier"
@@ -43,14 +43,14 @@ let pWhitespace1 =
 
 module Value =
     let pNumber =
-        numberLiteral NumberLiteralOptions.AllowFraction "value"
+        numberLiteral NumberLiteralOptions.AllowFraction "number"
         |>> fun nl ->
             if nl.IsInteger then
                 Int(Int32.Parse(nl.String))
             else
                 Float(Double.Parse(nl.String))
 
-    let pString = skipChar '\"' >>. manyCharsTill anyChar (skipChar '"') |>> String
+    let pString = skipChar '"' >>. manyCharsTill anyChar (skipChar '"') |>> String
 
     let pBoolean =
         (skipString "true" >>% (Boolean true))
@@ -121,7 +121,7 @@ module Expression =
 
     let pMoreThanExpression =
         tuple2 (Exp.parse .>>? pWhitespace .>>? skipString ">" .>> pWhitespace) Exp.parse
-        |>> MoreThanExpression
+        |>> GreaterThanExpression
 
     let pNotEqualExpression =
         tuple2 (Exp.parse .>>? pWhitespace .>>? skipString "!=" .>> pWhitespace) Exp.parse
@@ -129,7 +129,7 @@ module Expression =
 
     let pEqualExpression =
         tuple2 (Exp.parse .>>? pWhitespace .>>? skipString "==" .>> pWhitespace) Exp.parse
-        |>> EqualExpression
+        |>> EqualsExpression
 
     let pExpExpression = Exp.parse |>> ExpExpression
 

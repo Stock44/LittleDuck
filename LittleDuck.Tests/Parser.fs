@@ -339,7 +339,7 @@ module ``Expression parsing`` =
 
         test
             <@
-                result = MoreThanExpression(
+                result = GreaterThanExpression(
                     TermExp(FactorTerm(CTEFactor(ValueCTE(Int 2)))),
                     TermExp(FactorTerm(CTEFactor(ValueCTE(Int 5))))
                 )
@@ -439,7 +439,7 @@ do (4 > 2)"""
                               )
                           ) ]
                     ),
-                    MoreThanExpression(
+                    GreaterThanExpression(
                         TermExp(FactorTerm(CTEFactor(ValueCTE(Int 4)))),
                         TermExp(FactorTerm(CTEFactor(ValueCTE(Int 2))))
                     )
@@ -496,7 +496,7 @@ do (4 > 2)"""
                               )
                           ) ]
                     ),
-                    MoreThanExpression(
+                    GreaterThanExpression(
                         TermExp(FactorTerm(CTEFactor(ValueCTE(Int 4)))),
                         TermExp(FactorTerm(CTEFactor(ValueCTE(Int 2))))
                     )
@@ -711,7 +711,7 @@ do (4 > 2)"""
                                   )
                               ) ]
                         ),
-                        MoreThanExpression(
+                        GreaterThanExpression(
                             TermExp(FactorTerm(CTEFactor(ValueCTE(Int 4)))),
                             TermExp(FactorTerm(CTEFactor(ValueCTE(Int 2))))
                         )
@@ -1280,7 +1280,7 @@ module ``Program parsing`` =
                               [ ConditionStatement(
                                     IfCondition(
                                         IfNode(
-                                            MoreThanExpression(
+                                            GreaterThanExpression(
                                                 TermExp(FactorTerm(CTEFactor(IdentifierCTE(IdentifierNode("a"))))),
                                                 TermExp(FactorTerm(CTEFactor(ValueCTE(Int 0))))
                                             ),

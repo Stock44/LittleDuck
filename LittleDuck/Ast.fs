@@ -37,9 +37,9 @@ and ExpNode =
 
 and ExpressionNode =
     | LessThanExpression of ExpNode * ExpNode
-    | MoreThanExpression of ExpNode * ExpNode
+    | GreaterThanExpression of ExpNode * ExpNode
     | NotEqualExpression of ExpNode * ExpNode
-    | EqualExpression of ExpNode * ExpNode
+    | EqualsExpression of ExpNode * ExpNode
     | ExpExpression of ExpNode
 
 // End of recursion

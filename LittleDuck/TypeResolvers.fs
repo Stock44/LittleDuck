@@ -87,7 +87,7 @@ module Resolve =
 
                 return! validateLessThan lhsType rhsType |> Option.ofResult |> ReaderT.lift
             }
-        | MoreThanExpression(lhs, rhs) ->
+        | GreaterThanExpression(lhs, rhs) ->
             monad' {
                 let! lhsType = expType lhs
                 and! rhsType = expType rhs
@@ -101,7 +101,7 @@ module Resolve =
 
                 return! validateNotEqual lhsType rhsType |> Option.ofResult |> ReaderT.lift
             }
-        | EqualExpression(lhs, rhs) ->
+        | EqualsExpression(lhs, rhs) ->
             monad' {
                 let! lhsType = expType lhs
                 and! rhsType = expType rhs
